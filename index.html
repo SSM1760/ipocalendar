@@ -217,6 +217,16 @@
     }
 
     .table-top h2 { margin: 0; font-size: 18px; }
+
+    .section-title-inline {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .section-title-inline h2 { margin: 0; }
+
     .search-box { max-width: 300px; }
     .table-wrap { overflow: auto; }
 
@@ -324,6 +334,159 @@
       line-height: 1.6;
     }
 
+    .mobile-card-list {
+      display: grid;
+      gap: 12px;
+      padding: 14px;
+      background: #f8fafc;
+    }
+
+    .mobile-ipo-card {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 14px;
+      box-shadow: 0 8px 20px rgba(15, 23, 42, 0.06);
+    }
+
+    .mobile-card-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 10px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid #eef2f7;
+    }
+
+    .mobile-card-title {
+      font-size: 16px;
+      font-weight: 900;
+      line-height: 1.35;
+      word-break: keep-all;
+    }
+
+    .mobile-card-meta {
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.55;
+    }
+
+    .mobile-price-badge {
+      flex: 0 0 auto;
+      border-radius: 999px;
+      background: #eff6ff;
+      color: #1d4ed8;
+      padding: 7px 9px;
+      font-size: 12px;
+      font-weight: 900;
+      white-space: nowrap;
+    }
+
+    .mobile-person-block {
+      border: 1px solid #eef2f7;
+      border-radius: 14px;
+      padding: 11px;
+      background: #fbfdff;
+    }
+
+    .mobile-person-block + .mobile-person-block { margin-top: 0; }
+
+    .mobile-people-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      gap: 8px;
+      align-items: stretch;
+    }
+
+    .mobile-people-grid .mobile-person-block {
+      min-width: 0;
+      height: 100%;
+    }
+
+    .mobile-people-grid .mobile-field-grid {
+      grid-template-columns: 1fr;
+      gap: 6px;
+    }
+
+    .mobile-people-grid .mobile-field {
+      padding: 7px;
+    }
+
+    .mobile-people-grid .mobile-field-label {
+      margin-bottom: 2px;
+      font-size: 10px;
+    }
+
+    .mobile-people-grid .mobile-field-value {
+      font-size: 12px;
+    }
+
+    .mobile-people-grid .refund-badge,
+    .mobile-people-grid .status-select {
+      min-width: 0;
+      width: auto;
+      padding: 5px 7px;
+      font-size: 10px;
+    }
+
+    .mobile-person-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    .mobile-person-name {
+      font-size: 14px;
+      font-weight: 900;
+    }
+
+    .mobile-field-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .mobile-field {
+      min-width: 0;
+      border-radius: 12px;
+      background: #fff;
+      border: 1px solid #eef2f7;
+      padding: 8px;
+    }
+
+    .mobile-field-label {
+      display: block;
+      margin-bottom: 4px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 900;
+    }
+
+    .mobile-field-value {
+      font-size: 13px;
+      font-weight: 900;
+      line-height: 1.35;
+      min-height: 20px;
+    }
+
+    .mobile-card-actions {
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px solid #eef2f7;
+    }
+
+    .mobile-card-actions .actions { justify-content: flex-end; }
+
+    .mobile-edit-row {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
     @media (max-width: 1050px) {
       body { padding: 14px; }
       .header { flex-direction: column; }
@@ -340,6 +503,17 @@
       .btn-row { width: 100%; }
       .summary-card .value { font-size: 21px; }
       .mini-grid { grid-template-columns: 1fr; }
+      .table-top { align-items: stretch; }
+      .section-title-inline { width: 100%; justify-content: space-between; }
+      .section-title-inline button { width: auto; }
+      .search-box { max-width: none; }
+      .mobile-card-actions button { width: auto; }
+      .mobile-field .inline-input,
+      .mobile-field .share-input,
+      .mobile-field .status-select { width: 100%; }
+      .mobile-people-grid .status-select { width: 100%; }
+      .mobile-people-grid .mobile-person-name { font-size: 13px; }
+      .mobile-people-grid .mobile-edit-row { gap: 3px; }
     }
   </style>
 </head>
@@ -374,7 +548,7 @@
         <h2 id="formTitle">공모주 입력</h2>
         <div class="btn-row">
           <button type="button" class="secondary" id="toggleFormBtn" onclick="toggleForm()">열기</button>
-          <button type="button" class="secondary" onclick="resetForm()">입력칸 비우기</button>
+          <button type="button" class="secondary" id="resetFormBtn" onclick="resetForm()" style="display: none;">입력칸 비우기</button>
         </div>
       </div>
 
@@ -427,7 +601,10 @@
 
     <div class="card table-card">
       <div class="table-top">
-        <h2>공모주 정리 목록</h2>
+        <div class="section-title-inline">
+          <h2>공모주 정리 목록</h2>
+          <button type="button" class="small secondary" id="listManageBtn" onclick="toggleListManageMode()">수정</button>
+        </div>
         <input class="search-box" id="searchInput" oninput="render()" placeholder="종목명 검색">
       </div>
       <div class="table-wrap" id="tableWrap"></div>
@@ -443,6 +620,7 @@
     let ipoList = [];
     let isLoading = false;
     let editingRowId = '';
+    let listManageMode = false;
 
     const $ = (id) => document.getElementById(id);
     const toNum = (v) => Number(v || 0);
@@ -647,6 +825,7 @@
     function toggleForm(forceOpen) {
       const formCard = $('formCard');
       const toggleBtn = $('toggleFormBtn');
+      const resetBtn = $('resetFormBtn');
       if (!formCard || !toggleBtn) return;
 
       const shouldOpen = typeof forceOpen === 'boolean'
@@ -655,6 +834,7 @@
 
       formCard.classList.toggle('open', shouldOpen);
       toggleBtn.textContent = shouldOpen ? '최소화' : '열기';
+      if (resetBtn) resetBtn.style.display = shouldOpen ? '' : 'none';
     }
 
     function resetForm() {
@@ -692,6 +872,16 @@
 
     function cancelRowEdit() {
       editingRowId = '';
+      render();
+    }
+
+    function toggleListManageMode() {
+      listManageMode = !listManageMode;
+
+      if (!listManageMode) {
+        editingRowId = '';
+      }
+
       render();
     }
 
@@ -790,13 +980,31 @@ function renderSummary() {
   $('sumProfit').className = 'value ' + profitClass(totalProfit);
 }
 
+    function isMobileView() {
+      return window.matchMedia && window.matchMedia('(max-width: 640px)').matches;
+    }
+
     function renderTable() {
       if (isLoading) return;
       const list = filteredList();
+      const btn = $('listManageBtn');
+
+      if (btn) {
+        btn.textContent = listManageMode ? '완료' : '수정';
+        btn.className = listManageMode ? 'small green' : 'small secondary';
+      }
+
       if (!list.length) {
         $('tableWrap').innerHTML = '<div class="empty">등록된 공모주가 없습니다.</div>';
         return;
       }
+
+      if (isMobileView()) {
+        renderMobileCards(list);
+        return;
+      }
+
+      const manageHeader = listManageMode ? '<th>관리</th>' : '';
 
       const rows = list.map(item => {
         const c = calcItem(item);
@@ -805,6 +1013,14 @@ function renderSummary() {
         const p1c = c.personCalcs[0] || {};
         const p2c = c.personCalcs[1] || {};
         const isEditing = item.id === editingRowId;
+        const manageCell = listManageMode
+          ? `
+            <td rowspan="2">
+              ${renderActionButtons(item.id, isEditing)}
+            </td>
+          `
+          : '';
+
         return `
           <tr class="item-start person-row">
             <td class="left" rowspan="2">
@@ -813,9 +1029,7 @@ function renderSummary() {
             </td>
             <td class="money" rowspan="2">${won(item.offerPrice)}</td>
             ${renderPersonCells(item, p1, p1c, 0, isEditing)}
-            <td rowspan="2">
-              ${renderActionButtons(item.id, isEditing)}
-            </td>
+            ${manageCell}
           </tr>
           <tr class="person-row">
             ${renderPersonCells(item, p2, p2c, 1, isEditing)}
@@ -835,11 +1049,103 @@ function renderSummary() {
               <th>매도금액</th>
               <th>입금여부</th>
               <th>수익</th>
-              <th>관리</th>
+              ${manageHeader}
             </tr>
           </thead>
           <tbody>${rows}</tbody>
         </table>
+      `;
+    }
+
+    function renderMobileCards(list) {
+      const cards = list.map(item => {
+        const c = calcItem(item);
+        const p1 = item.people[0] || { name: '시민', participated: false };
+        const p2 = item.people[1] || { name: '예군', participated: false };
+        const p1c = c.personCalcs[0] || {};
+        const p2c = c.personCalcs[1] || {};
+        const isEditing = item.id === editingRowId;
+        const actionBlock = listManageMode
+          ? `<div class="mobile-card-actions">${renderActionButtons(item.id, isEditing)}</div>`
+          : '';
+
+        return `
+          <div class="mobile-ipo-card">
+            <div class="mobile-card-head">
+              <div>
+                <div class="mobile-card-title">${escapeHtml(item.company)}</div>
+                <div class="mobile-card-meta">증권사: ${item.broker ? escapeHtml(item.broker) : '-'}<br>상장일: ${dateText(item.listDate)}</div>
+              </div>
+              <div class="mobile-price-badge">${won(item.offerPrice)}</div>
+            </div>
+            <div class="mobile-people-grid">
+              ${renderMobilePersonBlock(item, p1, p1c, 0, isEditing)}
+              ${renderMobilePersonBlock(item, p2, p2c, 1, isEditing)}
+            </div>
+            ${actionBlock}
+          </div>
+        `;
+      }).join('');
+
+      $('tableWrap').innerHTML = `<div class="mobile-card-list">${cards}</div>`;
+    }
+
+    function renderMobilePersonBlock(item, person, calc, personIndex, isEditing) {
+      if (!person.participated) {
+        return `
+          <div class="mobile-person-block">
+            <div class="mobile-person-top">
+              <div class="mobile-person-name">${escapeHtml(person.name)}</div>
+              <span class="refund-badge status-none">미참여</span>
+            </div>
+            <div class="mobile-field-grid">
+              <div class="mobile-field"><span class="mobile-field-label">증거금</span><div class="mobile-field-value">미참여</div></div>
+              <div class="mobile-field"><span class="mobile-field-label">당첨수량</span><div class="mobile-field-value">0주</div></div>
+              <div class="mobile-field"><span class="mobile-field-label">매도금액</span><div class="mobile-field-value">-</div></div>
+              <div class="mobile-field"><span class="mobile-field-label">수익</span><div class="mobile-field-value">0원</div></div>
+            </div>
+          </div>
+        `;
+      }
+
+      const hasAllocation = Number(person.shares || 0) > 0;
+      const sharesDisplay = hasAllocation ? `${Number(person.shares || 0).toLocaleString('ko-KR')}주` : '배정안됨';
+      const sellDisplay = hasAllocation && person.sellPrice > 0 ? won(person.sellPrice) : '';
+      const profitDisplay = hasAllocation ? won(calc.profit) : '-';
+
+      if (!isEditing) {
+        return `
+          <div class="mobile-person-block">
+            <div class="mobile-person-top">
+              <div class="mobile-person-name">${escapeHtml(person.name)}</div>
+              <span class="refund-badge ${person.refunded ? 'status-done' : 'status-wait'}">${person.refunded ? '입금완료' : '입금전'}</span>
+            </div>
+            <div class="mobile-field-grid">
+              <div class="mobile-field"><span class="mobile-field-label">증거금</span><div class="mobile-field-value">${won(person.deposit)}</div></div>
+              <div class="mobile-field"><span class="mobile-field-label">당첨수량</span><div class="mobile-field-value">${sharesDisplay}</div></div>
+              <div class="mobile-field"><span class="mobile-field-label">매도금액</span><div class="mobile-field-value">${sellDisplay}</div></div>
+              <div class="mobile-field"><span class="mobile-field-label">수익</span><div class="mobile-field-value ${hasAllocation ? profitClass(calc.profit) : ''}">${profitDisplay}</div></div>
+            </div>
+          </div>
+        `;
+      }
+
+      return `
+        <div class="mobile-person-block">
+          <div class="mobile-person-top">
+            <div class="mobile-person-name">${escapeHtml(person.name)}</div>
+            <select id="refund-${item.id}-${personIndex}" class="${statusClass(!!person.refunded)}" onchange="updateRefundSelectColor(this)">
+              <option value="no" ${person.refunded ? '' : 'selected'}>입금전</option>
+              <option value="yes" ${person.refunded ? 'selected' : ''}>입금완료</option>
+            </select>
+          </div>
+          <div class="mobile-field-grid">
+            <div class="mobile-field"><span class="mobile-field-label">증거금</span><div class="mobile-field-value">${won(person.deposit)}</div></div>
+            <div class="mobile-field"><span class="mobile-field-label">당첨수량</span><div class="mobile-edit-row"><input id="shares-${item.id}-${personIndex}" class="share-input" type="number" min="0" max="9" step="1" value="${person.shares || 0}"><span>주</span></div></div>
+            <div class="mobile-field"><span class="mobile-field-label">매도금액</span><input id="sell-${item.id}-${personIndex}" class="inline-input" type="number" min="0" step="1" value="${person.sellPrice || ''}" placeholder="매도가"></div>
+            <div class="mobile-field"><span class="mobile-field-label">수익</span><div class="mobile-field-value ${profitClass(calc.profit)}">${won(calc.profit)}</div></div>
+          </div>
+        </div>
       `;
     }
 
@@ -934,6 +1240,10 @@ function renderSummary() {
       if (event.target && (event.target.id === 'p1Participated' || event.target.id === 'p2Participated')) {
         updateParticipationBadges();
       }
+    });
+
+    window.addEventListener('resize', () => {
+      renderTable();
     });
 
     load();
