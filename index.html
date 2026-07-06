@@ -1,0 +1,931 @@
+
+
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>공모주 일지</title>
+  <style>
+    :root {
+      --bg: #f5f7fb;
+      --card: #ffffff;
+      --line: #dfe5ef;
+      --text: #1f2937;
+      --muted: #6b7280;
+      --primary: #2563eb;
+      --primary-dark: #1d4ed8;
+      --green: #16a34a;
+      --red: #dc2626;
+      --yellow: #f59e0b;
+      --shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+      --radius: 16px;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Pretendard, Apple SD Gothic Neo, Noto Sans KR, sans-serif;
+      background: linear-gradient(135deg, #eef4ff 0%, var(--bg) 45%, #f8fafc 100%);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 24px;
+    }
+
+    .wrap { max-width: 1160px; margin: 0 auto; }
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 16px;
+      margin-bottom: 18px;
+    }
+
+    .title-box h1 {
+      margin: 0 0 8px;
+      font-size: 28px;
+      letter-spacing: -0.04em;
+    }
+
+    .title-box p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .btn-row { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
+
+    button {
+      border: 0;
+      border-radius: 12px;
+      padding: 10px 14px;
+      font-weight: 800;
+      cursor: pointer;
+      background: var(--primary);
+      color: #fff;
+      box-shadow: 0 6px 16px rgba(37, 99, 235, 0.18);
+      transition: 0.16s ease;
+      font-size: 13px;
+      white-space: nowrap;
+    }
+
+    button:hover { background: var(--primary-dark); transform: translateY(-1px); }
+    button:disabled { cursor: not-allowed; opacity: 0.72; transform: none; }
+    button.loading { display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+    .btn-spinner {
+      width: 14px;
+      height: 14px;
+      border: 2px solid rgba(255, 255, 255, 0.45);
+      border-top-color: #ffffff;
+      border-radius: 50%;
+      animation: spin 0.75s linear infinite;
+      flex: 0 0 auto;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    button.secondary { background: #334155; box-shadow: 0 6px 16px rgba(51, 65, 85, 0.14); }
+    button.secondary:hover { background: #1f2937; }
+    button.danger { background: var(--red); box-shadow: 0 6px 16px rgba(220, 38, 38, 0.14); }
+    button.danger:hover { background: #b91c1c; }
+    button.green { background: var(--green); box-shadow: 0 6px 16px rgba(22, 163, 74, 0.14); }
+    button.green:hover { background: #15803d; }
+    button.small { padding: 7px 9px; border-radius: 9px; box-shadow: none; font-size: 12px; }
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+      margin-bottom: 16px;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid rgba(223, 229, 239, 0.9);
+      border-radius: var(--radius);
+      padding: 18px;
+      box-shadow: var(--shadow);
+    }
+
+    .summary-card .label { color: var(--muted); font-size: 13px; font-weight: 800; margin-bottom: 8px; }
+    .summary-card .value { font-size: 24px; font-weight: 900; letter-spacing: -0.04em; }
+    .summary-card .hint { margin-top: 6px; color: var(--muted); font-size: 12px; }
+
+    .form-card { margin-bottom: 16px; }
+
+    .form-body { display: none; }
+    .form-card.open .form-body { display: block; }
+
+    .section-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .section-title h2 {
+      margin: 0;
+      font-size: 18px;
+      letter-spacing: -0.03em;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(12, 1fr);
+      gap: 10px;
+    }
+
+    .field { display: flex; flex-direction: column; gap: 6px; }
+    .field.col-4 { grid-column: span 4; }
+    .field.col-12 { grid-column: span 12; }
+
+    label { font-size: 12px; color: var(--muted); font-weight: 900; }
+
+    input, select {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 11px;
+      padding: 10px 11px;
+      font-size: 14px;
+      outline: none;
+      background: #fff;
+      color: var(--text);
+    }
+
+    input:focus, select:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+    }
+
+    .participants {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      grid-column: span 12;
+    }
+
+    .participant-check {
+      position: relative;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 14px;
+      background: #fbfdff;
+      cursor: pointer;
+      user-select: none;
+      font-weight: 900;
+    }
+
+    .participant-check input {
+      width: 20px;
+      height: 20px;
+      accent-color: var(--primary);
+      cursor: pointer;
+    }
+
+    .participant-check .badge {
+      margin-left: auto;
+      border-radius: 999px;
+      padding: 6px 10px;
+      background: #fee2e2;
+      color: #991b1b;
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .participant-check input:checked + span + .badge {
+      background: #dcfce7;
+      color: #166534;
+    }
+
+    .mini-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+
+    .table-card { overflow: hidden; padding: 0; }
+    .table-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 18px;
+      border-bottom: 1px solid var(--line);
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .table-top h2 { margin: 0; font-size: 18px; }
+    .search-box { max-width: 300px; }
+    .table-wrap { overflow: auto; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 1040px;
+      background: #fff;
+    }
+
+    th, td {
+      padding: 11px 10px;
+      border-bottom: 1px solid var(--line);
+      text-align: center;
+      font-size: 13px;
+      vertical-align: middle;
+    }
+
+    th {
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      background: #f8fafc;
+      color: #334155;
+      font-weight: 900;
+      white-space: nowrap;
+    }
+
+    tr.person-row:nth-child(4n+3), tr.person-row:nth-child(4n+4) { background: #fbfdff; }
+    tr.item-start td { border-top: 2px solid #e8eef8; }
+    td.left { text-align: left; }
+    .company-name { font-size: 15px; font-weight: 900; margin-bottom: 6px; }
+    .sub-info { color: var(--muted); font-size: 12px; line-height: 1.6; }
+    .money { font-weight: 800; }
+    .profit-plus { color: var(--green); }
+    .profit-minus { color: var(--red); }
+    .inline-input { width: 104px; text-align: right; padding: 7px 8px; border-radius: 9px; }
+    .share-input { width: 46px; text-align: center; padding: 7px 5px; border-radius: 9px; }
+
+    .status-select {
+      width: 104px;
+      padding: 7px 8px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 900;
+      text-align: center;
+    }
+    .status-none { background: #fee2e2; color: #991b1b; border-color: #fecaca; }
+    .status-wait { background: #fef3c7; color: #92400e; border-color: #fde68a; }
+    .status-done { background: #dcfce7; color: #166534; border-color: #bbf7d0; }
+
+    .plain-value {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 34px;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    .refund-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 82px;
+      border-radius: 999px;
+      padding: 7px 10px;
+      font-size: 12px;
+      font-weight: 900;
+      border: 1px solid transparent;
+    }
+
+    .shares-status-cell {
+      position: relative;
+      overflow: visible;
+    }
+
+    .no-allocation-text {
+      position: absolute;
+      left: calc(100% + 7px);
+      top: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 3;
+      color: #111827;
+      font-size: 12px;
+      font-weight: 900;
+      white-space: nowrap;
+      pointer-events: none;
+    }
+
+    .actions { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; }
+
+    .empty {
+      padding: 46px 16px;
+      text-align: center;
+      color: var(--muted);
+      background: #fff;
+      font-weight: 700;
+    }
+
+    .notice {
+      margin-top: 12px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.6;
+    }
+
+    @media (max-width: 1050px) {
+      body { padding: 14px; }
+      .header { flex-direction: column; }
+      .btn-row { justify-content: flex-start; }
+      .cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .field.col-4 { grid-column: span 12; }
+      .participants { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 640px) {
+      .cards { grid-template-columns: 1fr; }
+      .title-box h1 { font-size: 23px; }
+      button { width: 100%; text-align: center; }
+      .btn-row { width: 100%; }
+      .summary-card .value { font-size: 21px; }
+      .mini-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="header">
+      <div class="title-box">
+        <h1>공모주 일지</h1>
+      </div>
+    </div>
+
+    <div class="cards">
+      <div class="card summary-card">
+        <div class="label">등록 공모주</div>
+        <div class="value" id="sumCount">0건</div>
+        <div class="hint">당첨 후 등록한 종목 수</div>
+      </div>
+      <div class="card summary-card">
+        <div class="label">공용통장 입금전 금액</div>
+        <div class="value" id="sumPendingRefund">0원</div>
+        <div class="hint">입금전 상태인 환불 원복 금액</div>
+      </div>
+      <div class="card summary-card">
+        <div class="label">총 실현 수익</div>
+        <div class="value" id="sumProfit">0원</div>
+        <div class="hint">매도가 입력 완료 기준</div>
+      </div>
+    </div>
+
+    <div class="card form-card" id="formCard">
+      <div class="section-title">
+        <h2 id="formTitle">공모주 입력</h2>
+        <div class="btn-row">
+          <button type="button" class="secondary" id="toggleFormBtn" onclick="toggleForm()">열기</button>
+          <button type="button" class="secondary" onclick="resetForm()">입력칸 비우기</button>
+        </div>
+      </div>
+
+      <div class="form-body" id="formBody">
+        <form id="ipoForm" onsubmit="saveIPO(event)">
+        <input type="hidden" id="editId">
+        <div class="grid">
+          <div class="field col-4">
+            <label for="company">종목명</label>
+            <input id="company" required placeholder="예: ○○바이오">
+          </div>
+          <div class="field col-4">
+            <label for="deposit">증거금</label>
+            <input id="deposit" type="number" min="0" step="1" placeholder="원">
+          </div>
+          <div class="field col-4">
+            <label for="offerPrice">공모가</label>
+            <input id="offerPrice" type="number" min="0" step="1" placeholder="원">
+          </div>
+          <div class="field col-4">
+            <label for="broker">증권사</label>
+            <input id="broker" placeholder="예: 한국투자증권">
+          </div>
+          <div class="field col-4">
+            <label for="listDate">상장일</label>
+            <input id="listDate" type="date">
+          </div>
+
+          <div class="participants">
+            <label class="participant-check" for="p1Participated">
+              <input id="p1Participated" type="checkbox" checked>
+              <span>시민 참여</span>
+              <span class="badge" data-on="참여" data-off="미참여">참여</span>
+            </label>
+
+            <label class="participant-check" for="p2Participated">
+              <input id="p2Participated" type="checkbox" checked>
+              <span>예군 참여</span>
+              <span class="badge" data-on="참여" data-off="미참여">참여</span>
+            </label>
+          </div>
+
+          <div class="field col-12">
+            <button type="submit" class="green" id="submitBtn">등록하기</button>
+          </div>
+        </div>
+        </form>
+      </div>
+    </div>
+
+    <div class="card table-card">
+      <div class="table-top">
+        <h2>공모주 정리 목록</h2>
+        <input class="search-box" id="searchInput" oninput="render()" placeholder="종목명 검색">
+      </div>
+      <div class="table-wrap" id="tableWrap"></div>
+    </div>
+  </div>
+
+  <script>
+    /*
+      1) Apps Script를 웹 앱으로 배포한 뒤 아래 주소를 교체하세요.
+      2) 예: const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/배포ID/exec';
+    */
+    const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbycmLnptOiycFPFQx-4r0TKm8WjoBiJXNT353r_mWkpC0edRiNRNaVDgt7lOmurXj3J/exec';
+    let ipoList = [];
+    let isLoading = false;
+    let editingRowId = '';
+
+    const $ = (id) => document.getElementById(id);
+    const toNum = (v) => Number(v || 0);
+    const won = (n) => `${Math.round(Number(n || 0)).toLocaleString('ko-KR')}원`;
+    const dateText = (v) => v ? v : '-';
+
+    function isApiReady() {
+      return APPS_SCRIPT_URL && !APPS_SCRIPT_URL.includes('여기에_');
+    }
+
+    function apiCall(action, payload = {}) {
+      return new Promise((resolve, reject) => {
+        if (!isApiReady()) {
+          reject(new Error('HTML 파일 안의 APPS_SCRIPT_URL을 Apps Script 웹 앱 URL로 교체해주세요.'));
+          return;
+        }
+
+        const callbackName = `ipoCallback_${Date.now()}_${Math.floor(Math.random() * 100000)}`;
+        const script = document.createElement('script');
+        const params = new URLSearchParams({
+          action,
+          payload: JSON.stringify(payload),
+          callback: callbackName
+        });
+
+        const timer = setTimeout(() => {
+          cleanup();
+          reject(new Error('구글시트 응답 시간이 초과되었습니다. 웹 앱 배포 권한과 URL을 확인해주세요.'));
+        }, 20000);
+
+        function cleanup() {
+          clearTimeout(timer);
+          delete window[callbackName];
+          if (script.parentNode) script.parentNode.removeChild(script);
+        }
+
+        window[callbackName] = (res) => {
+          cleanup();
+          if (res && res.ok) resolve(res);
+          else reject(new Error((res && res.message) || '구글시트 처리 중 오류가 발생했습니다.'));
+        };
+
+        script.onerror = () => {
+          cleanup();
+          reject(new Error('Apps Script 웹 앱에 연결하지 못했습니다.'));
+        };
+
+        script.src = `${APPS_SCRIPT_URL}?${params.toString()}`;
+        document.body.appendChild(script);
+      });
+    }
+
+    function setLoading(on, message = '') {
+      isLoading = on;
+      const submitBtn = $('submitBtn');
+
+      if (submitBtn) {
+        submitBtn.disabled = on;
+
+        if (on) {
+          submitBtn.classList.add('loading');
+          submitBtn.innerHTML = '<span class="btn-spinner" aria-hidden="true"></span><span>저장 중...</span>';
+        } else {
+          submitBtn.classList.remove('loading');
+          submitBtn.textContent = $('editId') && $('editId').value ? '수정 저장하기' : '등록하기';
+        }
+      }
+
+      if (message && $('tableWrap')) $('tableWrap').innerHTML = `<div class="empty">${escapeHtml(message)}</div>`;
+    }
+
+    async function refreshListFromSheet() {
+      const res = await apiCall('list');
+      ipoList = (res.items || []).map(normalizeItem);
+    }
+
+    async function load() {
+      try {
+        setLoading(true, '구글시트에서 불러오는 중입니다.');
+        await refreshListFromSheet();
+      } catch (e) {
+        ipoList = [];
+        if ($('tableWrap')) $('tableWrap').innerHTML = `<div class="empty">${escapeHtml(e.message)}</div>`;
+        alert(e.message);
+      } finally {
+        setLoading(false);
+        render();
+      }
+    }
+
+    function normalizeItem(item) {
+      const people = Array.isArray(item.people) ? item.people : [];
+      return {
+        id: item.id || makeId(),
+        company: item.company || '',
+        offerPrice: toNum(item.offerPrice),
+        broker: item.broker || '',
+        listDate: item.listDate || '',
+        people: [
+          normalizePerson(people[0], '시민'),
+          normalizePerson(people[1], '예군')
+        ]
+      };
+    }
+
+    function normalizePerson(person, fixedName) {
+      person = person || {};
+      const shares = Math.max(0, Math.floor(toNum(person.shares)));
+      const deposit = Math.max(0, toNum(person.deposit));
+      const participated = person.participated !== undefined ? !!person.participated : (deposit > 0 || shares > 0 || toNum(person.sellPrice) > 0);
+      return {
+        name: fixedName,
+        participated,
+        deposit: participated ? deposit : 0,
+        shares: participated ? shares : 0,
+        sellPrice: participated ? Math.max(0, toNum(person.sellPrice)) : 0,
+        refunded: participated ? !!person.refunded : true
+      };
+    }
+
+    function makeId() {
+      if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
+      return `ipo-${Date.now()}-${Math.floor(Math.random() * 100000)}`;
+    }
+
+    function getFormData() {
+      const existing = ipoList.find(item => item.id === $('editId').value);
+      const deposit = Math.max(0, toNum($('deposit').value));
+      const p1On = $('p1Participated').checked;
+      const p2On = $('p2Participated').checked;
+      return {
+        id: $('editId').value || makeId(),
+        company: $('company').value.trim(),
+        offerPrice: Math.max(0, toNum($('offerPrice').value)),
+        broker: $('broker').value.trim(),
+        listDate: $('listDate').value,
+        people: [
+          {
+            name: '시민',
+            participated: p1On,
+            deposit: p1On ? deposit : 0,
+            shares: p1On && existing ? toNum(existing.people[0].shares) : 0,
+            sellPrice: p1On && existing ? toNum(existing.people[0].sellPrice) : 0,
+            refunded: p1On && existing ? !!existing.people[0].refunded : !p1On
+          },
+          {
+            name: '예군',
+            participated: p2On,
+            deposit: p2On ? deposit : 0,
+            shares: p2On && existing ? toNum(existing.people[1].shares) : 0,
+            sellPrice: p2On && existing ? toNum(existing.people[1].sellPrice) : 0,
+            refunded: p2On && existing ? !!existing.people[1].refunded : !p2On
+          }
+        ]
+      };
+    }
+
+    function calcPerson(item, person) {
+      if (!person.participated) return { allocatedCost: 0, expectedRefund: 0, profit: 0, fee: 0 };
+      const fee = person.shares > 0 ? 2000 : 0;
+      const allocatedCost = person.shares * item.offerPrice;
+      const expectedRefund = Math.max(0, person.deposit - allocatedCost - fee);
+      const profit = person.sellPrice > 0 ? (person.shares * (person.sellPrice - item.offerPrice) - fee) : 0;
+      return { allocatedCost, expectedRefund, profit, fee };
+    }
+
+    function calcItem(item) {
+      const p = item.people.map(person => calcPerson(item, person));
+      return {
+        pendingRefund: item.people.reduce((sum, person, idx) => sum + (person.refunded ? 0 : p[idx].expectedRefund), 0),
+        totalProfit: p.reduce((sum, v) => sum + v.profit, 0),
+        personCalcs: p
+      };
+    }
+
+    async function saveIPO(event) {
+      event.preventDefault();
+      const data = normalizeItem(getFormData());
+      if (!data.company) {
+        alert('종목명을 입력해주세요.');
+        return;
+      }
+      if (!data.people.some(person => person.participated)) {
+        alert('시민 또는 예군 중 최소 1명은 참여로 체크해주세요.');
+        return;
+      }
+
+      try {
+        setLoading(true, '구글시트에 저장 중입니다.');
+        await apiCall('upsert', { item: data });
+        await refreshListFromSheet();
+        editingRowId = '';
+        resetForm();
+      } catch (e) {
+        alert(e.message);
+      } finally {
+        setLoading(false);
+        render();
+      }
+    }
+
+    function toggleForm(forceOpen) {
+      const formCard = $('formCard');
+      const toggleBtn = $('toggleFormBtn');
+      if (!formCard || !toggleBtn) return;
+
+      const shouldOpen = typeof forceOpen === 'boolean'
+        ? forceOpen
+        : !formCard.classList.contains('open');
+
+      formCard.classList.toggle('open', shouldOpen);
+      toggleBtn.textContent = shouldOpen ? '최소화' : '열기';
+    }
+
+    function resetForm() {
+      $('ipoForm').reset();
+      $('editId').value = '';
+      $('formTitle').textContent = '공모주 입력';
+      $('submitBtn').textContent = '등록하기';
+      $('p1Participated').checked = true;
+      $('p2Participated').checked = true;
+      updateParticipationBadges();
+    }
+
+    function editIPO(id) {
+      const item = ipoList.find(v => v.id === id);
+      if (!item) return;
+      toggleForm(true);
+      $('editId').value = item.id;
+      $('company').value = item.company;
+      $('deposit').value = Math.max(item.people[0]?.deposit || 0, item.people[1]?.deposit || 0) || '';
+      $('offerPrice').value = item.offerPrice || '';
+      $('broker').value = item.broker || '';
+      $('listDate').value = item.listDate || '';
+      $('p1Participated').checked = item.people[0]?.participated !== false;
+      $('p2Participated').checked = item.people[1]?.participated !== false;
+      updateParticipationBadges();
+      $('formTitle').textContent = '공모주 수정';
+      $('submitBtn').textContent = '수정 저장하기';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function startRowEdit(id) {
+      editingRowId = id;
+      render();
+    }
+
+    function cancelRowEdit() {
+      editingRowId = '';
+      render();
+    }
+
+    async function deleteIPO(id) {
+      if (!confirm('이 공모주 기록을 삭제할까요?')) return;
+      try {
+        setLoading(true, '구글시트에서 삭제 중입니다.');
+        await apiCall('delete', { id });
+        if (editingRowId === id) editingRowId = '';
+        await refreshListFromSheet();
+      } catch (e) {
+        alert(e.message);
+      } finally {
+        setLoading(false);
+        render();
+      }
+    }
+
+    async function saveRow(id) {
+      const item = ipoList.find(v => v.id === id);
+      if (!item) return;
+
+      item.people.forEach((person, personIndex) => {
+        if (!person || !person.participated) return;
+        const sharesInput = document.getElementById(`shares-${id}-${personIndex}`);
+        const sellInput = document.getElementById(`sell-${id}-${personIndex}`);
+        const refundSelect = document.getElementById(`refund-${id}-${personIndex}`);
+
+        if (sharesInput) person.shares = Math.max(0, Math.min(9, Math.floor(toNum(sharesInput.value))));
+        if (sellInput) person.sellPrice = Math.max(0, toNum(sellInput.value));
+        if (refundSelect) person.refunded = refundSelect.value === 'yes';
+      });
+
+      try {
+        setLoading(true, '구글시트에 저장 중입니다.');
+        await apiCall('upsert', { item });
+        await refreshListFromSheet();
+        editingRowId = '';
+        alert('저장되었습니다.');
+      } catch (e) {
+        alert(e.message);
+      } finally {
+        setLoading(false);
+        render();
+      }
+    }
+
+    function profitClass(n) {
+      if (n > 0) return 'profit-plus';
+      if (n < 0) return 'profit-minus';
+      return '';
+    }
+
+    function statusClass(refunded) {
+      return refunded ? 'status-select status-done' : 'status-select status-wait';
+    }
+
+    function updateRefundSelectColor(selectEl) {
+      if (!selectEl) return;
+      selectEl.classList.remove('status-none', 'status-wait', 'status-done');
+      selectEl.classList.add(selectEl.value === 'yes' ? 'status-done' : 'status-wait');
+    }
+
+    function filteredList() {
+      const keyword = $('searchInput').value.trim().toLowerCase();
+      if (!keyword) return ipoList;
+      return ipoList.filter(item => item.company.toLowerCase().includes(keyword));
+    }
+
+    function render() {
+      renderSummary();
+      renderTable();
+    }
+
+    function renderSummary() {
+      let pendingRefund = 0;
+      let totalProfit = 0;
+      ipoList.forEach(item => {
+        const c = calcItem(item);
+        pendingRefund += c.pendingRefund;
+        totalProfit += c.totalProfit;
+      });
+      $('sumCount').textContent = `${ipoList.length.toLocaleString('ko-KR')}건`;
+      $('sumPendingRefund').textContent = won(pendingRefund);
+      $('sumProfit').textContent = won(totalProfit);
+      $('sumProfit').className = 'value ' + profitClass(totalProfit);
+    }
+
+    function renderTable() {
+      if (isLoading) return;
+      const list = filteredList();
+      if (!list.length) {
+        $('tableWrap').innerHTML = '<div class="empty">등록된 공모주가 없습니다.</div>';
+        return;
+      }
+
+      const rows = list.map(item => {
+        const c = calcItem(item);
+        const p1 = item.people[0] || { name: '시민', participated: false };
+        const p2 = item.people[1] || { name: '예군', participated: false };
+        const p1c = c.personCalcs[0] || {};
+        const p2c = c.personCalcs[1] || {};
+        const isEditing = item.id === editingRowId;
+        return `
+          <tr class="item-start person-row">
+            <td class="left" rowspan="2">
+              <div class="company-name">${escapeHtml(item.company)}</div>
+              <div class="sub-info">증권사: ${item.broker ? escapeHtml(item.broker) : '-'}<br>상장일: ${dateText(item.listDate)}</div>
+            </td>
+            <td class="money" rowspan="2">${won(item.offerPrice)}</td>
+            ${renderPersonCells(item, p1, p1c, 0, isEditing)}
+            <td rowspan="2">
+              ${renderActionButtons(item.id, isEditing)}
+            </td>
+          </tr>
+          <tr class="person-row">
+            ${renderPersonCells(item, p2, p2c, 1, isEditing)}
+          </tr>
+        `;
+      }).join('');
+
+      $('tableWrap').innerHTML = `
+        <table>
+          <thead>
+            <tr>
+              <th>종목/상장일</th>
+              <th>공모가</th>
+              <th>참여자</th>
+              <th>증거금</th>
+              <th>당첨수량</th>
+              <th>매도금액</th>
+              <th>입금여부</th>
+              <th>수익</th>
+              <th>관리</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+      `;
+    }
+
+    function renderActionButtons(id, isEditing) {
+      if (isEditing) {
+        return `
+              <div class="actions">
+                <button type="button" class="small green" onclick="saveRow('${id}')">저장</button>
+                <button type="button" class="small secondary" onclick="cancelRowEdit()">취소</button>
+                <button type="button" class="small danger" onclick="deleteIPO('${id}')">삭제</button>
+              </div>
+        `;
+      }
+
+      return `
+              <div class="actions">
+                <button type="button" class="small" onclick="startRowEdit('${id}')">수정</button>
+                <button type="button" class="small danger" onclick="deleteIPO('${id}')">삭제</button>
+              </div>
+      `;
+    }
+
+    function renderNoAllocationText(shares) {
+      return Number(shares || 0) === 0
+        ? '<span class="no-allocation-text">배정안됨</span>'
+        : '';
+    }
+
+    function renderPersonCells(item, person, calc, personIndex, isEditing) {
+      if (!person.participated) {
+        return `
+            <td>${escapeHtml(person.name)}</td>
+            <td class="money">미참여</td>
+            <td><span class="plain-value">0주</span></td>
+            <td><span class="plain-value">-</span></td>
+            <td><span class="refund-badge status-none">미참여</span></td>
+            <td class="money">0원</td>
+        `;
+      }
+
+      const hasAllocation = Number(person.shares || 0) > 0;
+
+      if (!isEditing) {
+        return `
+            <td>${escapeHtml(person.name)}</td>
+            <td class="money">${won(person.deposit)}</td>
+            <td class="shares-status-cell"><span class="plain-value">${hasAllocation ? `${Number(person.shares || 0).toLocaleString('ko-KR')}주` : ''}</span>${renderNoAllocationText(person.shares)}</td>
+            <td><span class="plain-value">${hasAllocation && person.sellPrice > 0 ? won(person.sellPrice) : ''}</span></td>
+            <td><span class="refund-badge ${person.refunded ? 'status-done' : 'status-wait'}">${person.refunded ? '입금완료' : '입금전'}</span></td>
+            <td class="money ${hasAllocation ? profitClass(calc.profit) : ''}">${hasAllocation ? won(calc.profit) : '-'}</td>
+        `;
+      }
+
+      return `
+            <td>${escapeHtml(person.name)}</td>
+            <td class="money">${won(person.deposit)}</td>
+            <td class="shares-status-cell">
+              <input id="shares-${item.id}-${personIndex}" class="share-input" type="number" min="0" max="9" step="1" value="${person.shares || 0}"> 주${renderNoAllocationText(person.shares)}
+            </td>
+            <td>
+              <input id="sell-${item.id}-${personIndex}" class="inline-input" type="number" min="0" step="1" value="${person.sellPrice || ''}" placeholder="매도가">
+            </td>
+            <td>
+              <select id="refund-${item.id}-${personIndex}" class="${statusClass(!!person.refunded)}" onchange="updateRefundSelectColor(this)">
+                <option value="no" ${person.refunded ? '' : 'selected'}>입금전</option>
+                <option value="yes" ${person.refunded ? 'selected' : ''}>입금완료</option>
+              </select>
+            </td>
+            <td class="money ${profitClass(calc.profit)}">${won(calc.profit)}</td>
+      `;
+    }
+
+    function updateParticipationBadges() {
+      ['p1Participated', 'p2Participated'].forEach(id => {
+        const input = $(id);
+        if (!input) return;
+        const badge = input.parentElement.querySelector('.badge');
+        if (badge) badge.textContent = input.checked ? '참여' : '미참여';
+      });
+    }
+
+    function escapeHtml(text) {
+      return String(text ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    document.addEventListener('change', (event) => {
+      if (event.target && (event.target.id === 'p1Participated' || event.target.id === 'p2Participated')) {
+        updateParticipationBadges();
+      }
+    });
+
+    load();
+  </script>
+</body>
+</html>
