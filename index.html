@@ -1,5 +1,6 @@
 
 
+
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -351,11 +352,11 @@
     </div>
 
     <div class="cards">
-      <div class="card summary-card">
-        <div class="label">등록 공모주</div>
-        <div class="value" id="sumCount">0건</div>
-        <div class="hint">당첨 후 등록한 종목 수</div>
-      </div>
+<div class="card summary-card">
+  <div class="label">미입금 공모주</div>
+  <div class="value" id="sumCount">0건</div>
+  <div class="hint">입금전 상태인 종목 수</div>
+</div>
       <div class="card summary-card">
         <div class="label">공용통장 입금전 금액</div>
         <div class="value" id="sumPendingRefund">0원</div>
@@ -765,19 +766,29 @@
       renderTable();
     }
 
-    function renderSummary() {
-      let pendingRefund = 0;
-      let totalProfit = 0;
-      ipoList.forEach(item => {
-        const c = calcItem(item);
-        pendingRefund += c.pendingRefund;
-        totalProfit += c.totalProfit;
-      });
-      $('sumCount').textContent = `${ipoList.length.toLocaleString('ko-KR')}건`;
-      $('sumPendingRefund').textContent = won(pendingRefund);
-      $('sumProfit').textContent = won(totalProfit);
-      $('sumProfit').className = 'value ' + profitClass(totalProfit);
-    }
+function renderSummary() {
+  let pendingRefund = 0;
+  let totalProfit = 0;
+  let pendingItemCount = 0;
+
+  ipoList.forEach(item => {
+    const c = calcItem(item);
+    pendingRefund += c.pendingRefund;
+    totalProfit += c.totalProfit;
+
+    const hasPendingRefund = item.people.some(person => {
+      if (!person.participated) return false;
+      return person.refunded === false;
+    });
+
+    if (hasPendingRefund) pendingItemCount += 1;
+  });
+
+  $('sumCount').textContent = `${pendingItemCount.toLocaleString('ko-KR')}건`;
+  $('sumPendingRefund').textContent = won(pendingRefund);
+  $('sumProfit').textContent = won(totalProfit);
+  $('sumProfit').className = 'value ' + profitClass(totalProfit);
+}
 
     function renderTable() {
       if (isLoading) return;
