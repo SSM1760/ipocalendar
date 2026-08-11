@@ -1,6 +1,8 @@
 
 
 
+
+
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -276,6 +278,7 @@
     }
     .status-none { background: #fee2e2; color: #991b1b; border-color: #fecaca; }
     .status-wait { background: #fef3c7; color: #92400e; border-color: #fde68a; }
+    .status-partial { background: #dbeafe; color: #1e40af; border-color: #bfdbfe; }
     .status-done { background: #dcfce7; color: #166534; border-color: #bbf7d0; }
 
     .plain-value {
@@ -534,12 +537,12 @@
       <div class="card summary-card">
         <div class="label">공용통장 입금전 금액</div>
         <div class="value" id="sumPendingRefund">0원</div>
-        <div class="hint">입금전 상태인 환불 원복 금액</div>
+        <div class="hint">아직 공용통장에 돌아오지 않은 금액</div>
       </div>
       <div class="card summary-card">
         <div class="label">총 실현 수익</div>
         <div class="value" id="sumProfit">0원</div>
-        <div class="hint">매도가 입력 완료 기준</div>
+        <div class="hint">목록의 수익 합계 기준</div>
       </div>
     </div>
 
@@ -617,6 +620,7 @@
       2) 예: const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/배포ID/exec';
     */
     const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbycmLnptOiycFPFQx-4r0TKm8WjoBiJXNT353r_mWkpC0edRiNRNaVDgt7lOmurXj3J/exec';
+    const REQUIRED_API_VERSION = '3state-v2';
     let ipoList = [];
     let isLoading = false;
     let editingRowId = '';
@@ -694,6 +698,9 @@
 
     async function refreshListFromSheet() {
       const res = await apiCall('list');
+      if (res.apiVersion !== REQUIRED_API_VERSION) {
+        throw new Error('Apps Script가 구버전으로 배포되어 있습니다. Code.gs를 최신 코드로 저장한 뒤 [배포 > 배포 관리 > 수정 > 새 버전]으로 다시 배포해주세요.');
+      }
       ipoList = (res.items || []).map(normalizeItem);
     }
 
@@ -731,13 +738,23 @@
       const shares = Math.max(0, Math.floor(toNum(person.shares)));
       const deposit = Math.max(0, toNum(person.deposit));
       const participated = person.participated !== undefined ? !!person.participated : (deposit > 0 || shares > 0 || toNum(person.sellPrice) > 0);
+
+      // 기존 refunded(boolean) 데이터와 새 paymentStatus(3단계) 데이터를 모두 호환한다.
+      let paymentStatus = person.paymentStatus;
+      if (!['pending', 'refund_only', 'completed'].includes(paymentStatus)) {
+        paymentStatus = person.refunded ? 'completed' : 'pending';
+      }
+      if (!participated) paymentStatus = 'completed';
+
       return {
         name: fixedName,
         participated,
         deposit: participated ? deposit : 0,
         shares: participated ? shares : 0,
         sellPrice: participated ? Math.max(0, toNum(person.sellPrice)) : 0,
-        refunded: participated ? !!person.refunded : true
+        paymentStatus,
+        // 기존 Apps Script/시트와의 호환을 위해 유지한다.
+        refunded: participated ? paymentStatus === 'completed' : true
       };
     }
 
@@ -764,7 +781,8 @@
             deposit: p1On ? deposit : 0,
             shares: p1On && existing ? toNum(existing.people[0].shares) : 0,
             sellPrice: p1On && existing ? toNum(existing.people[0].sellPrice) : 0,
-            refunded: p1On && existing ? !!existing.people[0].refunded : !p1On
+            paymentStatus: p1On && existing ? (existing.people[0].paymentStatus || (existing.people[0].refunded ? 'completed' : 'pending')) : (p1On ? 'pending' : 'completed'),
+            refunded: p1On && existing ? (existing.people[0].paymentStatus ? existing.people[0].paymentStatus === 'completed' : !!existing.people[0].refunded) : !p1On
           },
           {
             name: '예군',
@@ -772,25 +790,57 @@
             deposit: p2On ? deposit : 0,
             shares: p2On && existing ? toNum(existing.people[1].shares) : 0,
             sellPrice: p2On && existing ? toNum(existing.people[1].sellPrice) : 0,
-            refunded: p2On && existing ? !!existing.people[1].refunded : !p2On
+            paymentStatus: p2On && existing ? (existing.people[1].paymentStatus || (existing.people[1].refunded ? 'completed' : 'pending')) : (p2On ? 'pending' : 'completed'),
+            refunded: p2On && existing ? (existing.people[1].paymentStatus ? existing.people[1].paymentStatus === 'completed' : !!existing.people[1].refunded) : !p2On
           }
         ]
       };
     }
 
-    function calcPerson(item, person) {
-      if (!person.participated) return { allocatedCost: 0, expectedRefund: 0, profit: 0, fee: 0 };
-      const fee = person.shares > 0 ? 2000 : 0;
-      const allocatedCost = person.shares * item.offerPrice;
-      const expectedRefund = Math.max(0, person.deposit - allocatedCost - fee);
-      const profit = person.sellPrice > 0 ? (person.shares * (person.sellPrice - item.offerPrice) - fee) : 0;
-      return { allocatedCost, expectedRefund, profit, fee };
+function calcPerson(item, person) {
+  if (!person.participated) {
+    return { allocatedCost: 0, expectedRefund: 0, profit: 0, fee: 0 };
+  }
+
+  const fee = person.shares > 0 ? 2000 : 0;
+  const allocatedCost = person.shares * item.offerPrice;
+  const expectedRefund = Math.max(0, person.deposit - allocatedCost - fee);
+
+  const profit = person.shares > 0
+    ? (person.sellPrice > 0
+        ? person.shares * (person.sellPrice - item.offerPrice) - fee
+        : -fee)
+    : 0;
+
+  return { allocatedCost, expectedRefund, profit, fee };
+}
+
+    function pendingAmountForPerson(item, person, calc) {
+      if (!person.participated) return 0;
+
+      const status = person.paymentStatus || (person.refunded ? 'completed' : 'pending');
+      if (status === 'completed') return 0;
+
+      if (status === 'refund_only') {
+        // 환불금만 입금한 상태에서는 이미 공용통장으로 되돌려 놓은 환불액은 제외하고,
+        // 아직 정산되지 않은 당첨주식 원금 + 청약 수수료만 미입금 금액으로 본다.
+        // 예: 증거금 107,500원 / 공모가 21,500원 / 1주 / 수수료 2,000원 = 23,500원
+        const allocatedCost = Math.max(0, Number(calc.allocatedCost || 0));
+        const fee = Math.max(0, Number(calc.fee || 0));
+        return allocatedCost + fee;
+      }
+
+      // 입금전 상태는 증거금 전체가 아직 미입금이다.
+      return Math.max(0, person.deposit);
     }
 
     function calcItem(item) {
       const p = item.people.map(person => calcPerson(item, person));
       return {
-        pendingRefund: item.people.reduce((sum, person, idx) => sum + (person.refunded ? 0 : p[idx].expectedRefund), 0),
+        pendingRefund: item.people.reduce(
+          (sum, person, idx) => sum + pendingAmountForPerson(item, person, p[idx]),
+          0
+        ),
         totalProfit: p.reduce((sum, v) => sum + v.profit, 0),
         personCalcs: p
       };
@@ -912,7 +962,11 @@
 
         if (sharesInput) person.shares = Math.max(0, Math.min(9, Math.floor(toNum(sharesInput.value))));
         if (sellInput) person.sellPrice = Math.max(0, toNum(sellInput.value));
-        if (refundSelect) person.refunded = refundSelect.value === 'yes';
+        if (refundSelect) {
+          person.paymentStatus = refundSelect.value;
+          // 기존 백엔드 호환용 boolean. 최종 입금완료일 때만 true.
+          person.refunded = refundSelect.value === 'completed';
+        }
       });
 
       try {
@@ -935,14 +989,30 @@
       return '';
     }
 
-    function statusClass(refunded) {
-      return refunded ? 'status-select status-done' : 'status-select status-wait';
+    function getPaymentStatus(person) {
+      if (!person || !person.participated) return 'completed';
+      if (['pending', 'refund_only', 'completed'].includes(person.paymentStatus)) return person.paymentStatus;
+      return person.refunded ? 'completed' : 'pending';
+    }
+
+    function statusClass(status) {
+      if (status === 'completed') return 'status-select status-done';
+      if (status === 'refund_only') return 'status-select status-partial';
+      return 'status-select status-wait';
+    }
+
+    function statusLabel(status) {
+      if (status === 'completed') return '입금완료';
+      if (status === 'refund_only') return '환불금만 입금';
+      return '입금전';
     }
 
     function updateRefundSelectColor(selectEl) {
       if (!selectEl) return;
-      selectEl.classList.remove('status-none', 'status-wait', 'status-done');
-      selectEl.classList.add(selectEl.value === 'yes' ? 'status-done' : 'status-wait');
+      selectEl.classList.remove('status-none', 'status-wait', 'status-partial', 'status-done');
+      if (selectEl.value === 'completed') selectEl.classList.add('status-done');
+      else if (selectEl.value === 'refund_only') selectEl.classList.add('status-partial');
+      else selectEl.classList.add('status-wait');
     }
 
     function filteredList() {
@@ -966,9 +1036,10 @@ function renderSummary() {
     pendingRefund += c.pendingRefund;
     totalProfit += c.totalProfit;
 
-    const hasPendingRefund = item.people.some(person => {
+    const hasPendingRefund = item.people.some((person, idx) => {
       if (!person.participated) return false;
-      return person.refunded === false;
+      const personCalc = c.personCalcs[idx] || calcPerson(item, person);
+      return pendingAmountForPerson(item, person, personCalc) > 0;
     });
 
     if (hasPendingRefund) pendingItemCount += 1;
@@ -1112,13 +1183,14 @@ function renderSummary() {
       const sharesDisplay = hasAllocation ? `${Number(person.shares || 0).toLocaleString('ko-KR')}주` : '배정안됨';
       const sellDisplay = hasAllocation && person.sellPrice > 0 ? won(person.sellPrice) : '';
       const profitDisplay = hasAllocation ? won(calc.profit) : '-';
+      const paymentStatus = getPaymentStatus(person);
 
       if (!isEditing) {
         return `
           <div class="mobile-person-block">
             <div class="mobile-person-top">
               <div class="mobile-person-name">${escapeHtml(person.name)}</div>
-              <span class="refund-badge ${person.refunded ? 'status-done' : 'status-wait'}">${person.refunded ? '입금완료' : '입금전'}</span>
+              <span class="refund-badge ${statusClass(paymentStatus).replace('status-select ', '')}">${statusLabel(paymentStatus)}</span>
             </div>
             <div class="mobile-field-grid">
               <div class="mobile-field"><span class="mobile-field-label">증거금</span><div class="mobile-field-value">${won(person.deposit)}</div></div>
@@ -1134,9 +1206,10 @@ function renderSummary() {
         <div class="mobile-person-block">
           <div class="mobile-person-top">
             <div class="mobile-person-name">${escapeHtml(person.name)}</div>
-            <select id="refund-${item.id}-${personIndex}" class="${statusClass(!!person.refunded)}" onchange="updateRefundSelectColor(this)">
-              <option value="no" ${person.refunded ? '' : 'selected'}>입금전</option>
-              <option value="yes" ${person.refunded ? 'selected' : ''}>입금완료</option>
+            <select id="refund-${item.id}-${personIndex}" class="${statusClass(paymentStatus)}" onchange="updateRefundSelectColor(this)">
+              <option value="pending" ${paymentStatus === 'pending' ? 'selected' : ''}>입금전</option>
+              <option value="refund_only" ${paymentStatus === 'refund_only' ? 'selected' : ''}>환불금만 입금</option>
+              <option value="completed" ${paymentStatus === 'completed' ? 'selected' : ''}>입금완료</option>
             </select>
           </div>
           <div class="mobile-field-grid">
@@ -1187,6 +1260,7 @@ function renderSummary() {
       }
 
       const hasAllocation = Number(person.shares || 0) > 0;
+      const paymentStatus = getPaymentStatus(person);
 
       if (!isEditing) {
         return `
@@ -1194,7 +1268,7 @@ function renderSummary() {
             <td class="money">${won(person.deposit)}</td>
             <td class="shares-status-cell"><span class="plain-value">${hasAllocation ? `${Number(person.shares || 0).toLocaleString('ko-KR')}주` : ''}</span>${renderNoAllocationText(person.shares)}</td>
             <td><span class="plain-value">${hasAllocation && person.sellPrice > 0 ? won(person.sellPrice) : ''}</span></td>
-            <td><span class="refund-badge ${person.refunded ? 'status-done' : 'status-wait'}">${person.refunded ? '입금완료' : '입금전'}</span></td>
+            <td><span class="refund-badge ${statusClass(paymentStatus).replace('status-select ', '')}">${statusLabel(paymentStatus)}</span></td>
             <td class="money ${hasAllocation ? profitClass(calc.profit) : ''}">${hasAllocation ? won(calc.profit) : '-'}</td>
         `;
       }
@@ -1209,9 +1283,10 @@ function renderSummary() {
               <input id="sell-${item.id}-${personIndex}" class="inline-input" type="number" min="0" step="1" value="${person.sellPrice || ''}" placeholder="매도가">
             </td>
             <td>
-              <select id="refund-${item.id}-${personIndex}" class="${statusClass(!!person.refunded)}" onchange="updateRefundSelectColor(this)">
-                <option value="no" ${person.refunded ? '' : 'selected'}>입금전</option>
-                <option value="yes" ${person.refunded ? 'selected' : ''}>입금완료</option>
+              <select id="refund-${item.id}-${personIndex}" class="${statusClass(paymentStatus)}" onchange="updateRefundSelectColor(this)">
+                <option value="pending" ${paymentStatus === 'pending' ? 'selected' : ''}>입금전</option>
+                <option value="refund_only" ${paymentStatus === 'refund_only' ? 'selected' : ''}>환불금만 입금</option>
+                <option value="completed" ${paymentStatus === 'completed' ? 'selected' : ''}>입금완료</option>
               </select>
             </td>
             <td class="money ${profitClass(calc.profit)}">${won(calc.profit)}</td>
