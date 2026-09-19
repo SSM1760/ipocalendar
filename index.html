@@ -3,6 +3,7 @@
 
 
 
+
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -1317,9 +1318,17 @@ function renderSummary() {
       }
     });
 
-    window.addEventListener('resize', () => {
-      renderTable();
-    });
+    let lastMobileView = isMobileView();
+
+window.addEventListener('resize', () => {
+  const currentMobileView = isMobileView();
+
+  // PC ↔ 모바일 레이아웃이 실제로 바뀐 경우에만 다시 렌더링
+  if (currentMobileView !== lastMobileView) {
+    lastMobileView = currentMobileView;
+    renderTable();
+  }
+});
 
     load();
   </script>
